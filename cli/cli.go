@@ -43,6 +43,7 @@ You are an expert software developer specializing in converting JavaScript code 
 
 - Analyze the provided JavaScript code and identify the relevant information needed to construct a GraphQL query or mutation.
 - Generate the equivalent GraphQL query or mutation based on the JavaScript code.
+- include ALL queries and mutations in the provided JavaScript code. do not leave ANY out.
 
 # STEPS
 

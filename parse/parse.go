@@ -110,26 +110,25 @@ func FindPatterns(filename string) ([]string, error) {
 }
 
 func FindPatternsFromFolder(folderName string) ([]string, error) {
-	resultArray := []string{}
+	var resultArray []string
 	cwd, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
 	folderPath := filepath.Join(cwd, folderName)
-	fileEntries, err := os.ReadDir(folderPath)
-	if err != nil {
-		return nil, err
-	}
 	var wg sync.WaitGroup
 	mu := sync.Mutex{}
-	resultsChan := make(chan []string, len(fileEntries))
-	for _, entry := range fileEntries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".js") {
+	resultsChan := make(chan []string, 100)
+
+	err = filepath.WalkDir(folderPath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() && strings.HasSuffix(d.Name(), ".js") {
 			wg.Add(1)
-			go func(entry fs.DirEntry) {
+			go func(path string) {
 				defer wg.Done()
-				filePath := filepath.Join(folderPath, entry.Name())
-				patternResults, err := FindPatterns(filePath)
+				patternResults, err := FindPatterns(path)
 				if err != nil {
 					fmt.Printf("Error finding patterns in file: %v\n", err)
 					return
@@ -137,9 +136,14 @@ func FindPatternsFromFolder(folderName string) ([]string, error) {
 				mu.Lock()
 				resultsChan <- patternResults
 				mu.Unlock()
-			}(entry)
+			}(path)
 		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
+
 	wg.Wait()
 	close(resultsChan)
 	for chanresult := range resultsChan {
