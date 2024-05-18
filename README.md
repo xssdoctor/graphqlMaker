@@ -27,3 +27,5 @@ Application Options:
 Help Options:
   -h, --help    Show this help message
 ```
+
+- Make sure to make a .env file in your cwd with OPENAI_API_KEY=[your key]

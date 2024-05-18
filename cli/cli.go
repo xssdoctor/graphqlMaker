@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -14,7 +15,8 @@ import (
 func Cli()(error){
 	var resultArray []string
 	var err error
-	godotenv.Load(".env")
+	envFile := filepath.Join(".env")
+	godotenv.Load(envFile)
 	Flags, err := flags.Init()
 	if err != nil {
 		return err
