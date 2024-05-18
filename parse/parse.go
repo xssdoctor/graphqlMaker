@@ -174,14 +174,13 @@ func chunkString(s string, chunkSize int) []string {
 	return chunks
 }
 
-func FindPatternsFromFolder(folderName string) ([]string, error) {
+func FindPatternsFromFolder(folderName string) error {
 	cwd, err := os.Getwd()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	envFile := filepath.Join(cwd, ".env")
 	godotenv.Load(envFile)
-	var resultArray []string
 
 	err = filepath.WalkDir(folderName, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -203,7 +202,9 @@ func FindPatternsFromFolder(folderName string) ([]string, error) {
 						if err != nil {
 							return err
 						}
-						fmt.Println(response)
+						if response != "No queries or mutations found." {
+							fmt.Println(response)
+						}
 					}
 				} else {
 					oai := models.NewOpenAi(os.Getenv("OPENAI_API_KEY"), system, message)
@@ -211,15 +212,17 @@ func FindPatternsFromFolder(folderName string) ([]string, error) {
 					if err != nil {
 						return err
 					}
-					fmt.Println(response)
+					if response != "No queries or mutations found." {
+						fmt.Println(response)
+					}
 				}
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return resultArray, nil
+	return nil
 }

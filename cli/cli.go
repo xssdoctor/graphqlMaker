@@ -97,7 +97,7 @@ mutation {
 	return nil
 	}
 	if Flags.Folder != "" {
-		_, err = parse.FindPatternsFromFolder(Flags.Folder)
+		err = parse.FindPatternsFromFolder(Flags.Folder)
 		if err != nil {
 			return err
 		}
