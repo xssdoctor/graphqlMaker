@@ -170,18 +170,11 @@ func FindPatterns(filename string) ([]string, error) {
 }
 
 func FindPatternsFromFolder(folderName string) ([]string, error) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	envFile := filepath.Join(cwd, ".env")
-	godotenv.Load(envFile)
 	var resultArray []string
 	var wg sync.WaitGroup
-	mu := sync.Mutex{}
 	resultsChan := make(chan []string, 100)
 
-	err = filepath.WalkDir(folderName, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(folderName, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -194,9 +187,7 @@ func FindPatternsFromFolder(folderName string) ([]string, error) {
 					fmt.Printf("Error finding patterns in file: %v\n", err)
 					return
 				}
-				mu.Lock()
 				resultsChan <- patternResults
-				mu.Unlock()
 			}(path)
 		}
 		return nil
@@ -205,14 +196,28 @@ func FindPatternsFromFolder(folderName string) ([]string, error) {
 		return nil, err
 	}
 
-	wg.Wait()
-	close(resultsChan)
+	go func() {
+		wg.Wait()
+		close(resultsChan)
+	}()
+
 	for chanresult := range resultsChan {
 		if len(chanresult) > 0 {
 			message := strings.Join(chanresult, "\n")
-			oai := models.NewOpenAi(os.Getenv("OPENAI_API"), system, message)
-			oai.SendMessage()
+			cwd, err := os.Getwd()
+			if err != nil {
+				return nil, err
+			}
+			envFile := filepath.Join(cwd, ".env")
+			godotenv.Load(envFile)
+			oai := models.NewOpenAi(os.Getenv("OPENAI_API_KEY"), system, message)
+			response, err := oai.SendMessage()
+			if err != nil {
+				return nil, err
+			}
+			fmt.Println(response)
 		}
 	}
+
 	return resultArray, nil
 }
