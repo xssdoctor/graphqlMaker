@@ -140,15 +140,15 @@ func FindPatterns(filename string) ([]string, error) {
 		for i, line := range lineList {
 			if regex.MatchString(line) && !processedLines[i] {
 				var start, end int
-				if i < 5 {
+				if i < 20 {
 					start = 0
 				} else {
-					start = i - 5
+					start = i - 20
 				}
-				if i > len(lineList)-6 {
+				if i > len(lineList)-20 {
 					end = len(lineList)
 				} else {
-					end = i + 6
+					end = i + 20
 				}
 
 				for j := start; j < end; j++ {
