@@ -58,6 +58,7 @@ You are an expert software developer specializing in converting JavaScript code 
 3. Extract the GraphQL query or mutation from the JavaScript code.
 4. Construct the GraphQL query or mutation in the proper format, including any necessary variables, fields, and arguments.
 5. Provide the GraphQL query or mutation as a standalone code block, without any explanations or additional text.
+6. IMPORTANT. If there are NO queries or mutations in the JavaScript code, respond with "No queries or mutations found." ONLY. Do not provide any additional information.
 
 # EXAMPLE
 
@@ -128,6 +129,8 @@ func FindPatterns(filename string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	processedLines := make(map[int]bool)
 	for _, pattern := range patterns {
 		regex, err := regexp.Compile(pattern)
 		if err != nil {
@@ -135,18 +138,23 @@ func FindPatterns(filename string) ([]string, error) {
 			continue
 		}
 		for i, line := range lineList {
-			if regex.MatchString(line) {
+			if regex.MatchString(line) && !processedLines[i] {
 				var start, end int
 				if i < 5 {
 					start = 0
 				} else {
 					start = i - 5
 				}
-				if i > len(lineList)-5 {
+				if i > len(lineList)-6 {
 					end = len(lineList)
 				} else {
-					end = i + 5
+					end = i + 6
 				}
+
+				for j := start; j < end; j++ {
+					processedLines[j] = true
+				}
+
 				aboveAndBelow := lineList[start:end]
 				compiledList := strings.Join(aboveAndBelow, "\n")
 				result = append(result, compiledList)
@@ -156,6 +164,15 @@ func FindPatterns(filename string) ([]string, error) {
 	return result, nil
 }
 
+func chunkString(s string, chunkSize int) []string {
+	var chunks []string
+	for len(s) > chunkSize {
+		chunks = append(chunks, s[:chunkSize])
+		s = s[chunkSize:]
+	}
+	chunks = append(chunks, s)
+	return chunks
+}
 
 func FindPatternsFromFolder(folderName string) ([]string, error) {
 	cwd, err := os.Getwd()
@@ -178,12 +195,24 @@ func FindPatternsFromFolder(folderName string) ([]string, error) {
 			}
 			if len(patternResults) > 0 {
 				message := strings.Join(patternResults, "\n")
-				oai := models.NewOpenAi(os.Getenv("OPENAI_API_KEY"), system, message)
-				response, err := oai.SendMessage()
-				if err != nil {
-					return err
+				if len(message) > 128000 {
+					chunks := chunkString(message, 64000) // split into smaller chunks
+					for _, chunk := range chunks {
+						oai := models.NewOpenAi(os.Getenv("OPENAI_API_KEY"), system, chunk)
+						response, err := oai.SendMessage()
+						if err != nil {
+							return err
+						}
+						fmt.Println(response)
+					}
+				} else {
+					oai := models.NewOpenAi(os.Getenv("OPENAI_API_KEY"), system, message)
+					response, err := oai.SendMessage()
+					if err != nil {
+						return err
+					}
+					fmt.Println(response)
 				}
-				fmt.Println(response)
 			}
 		}
 		return nil
