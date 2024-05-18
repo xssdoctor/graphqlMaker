@@ -51,7 +51,7 @@ You are an expert software developer specializing in converting JavaScript code 
 
 1. Carefully examine the provided JavaScript code snippet.
 2. Identify the following elements in the code:
-- The API endpoint URL
+- The graphql endpoint URL
 - The HTTP method (GET, POST, etc.)
 - Any headers or authentication information
 - The GraphQL query or mutation string
@@ -64,7 +64,7 @@ You are an expert software developer specializing in converting JavaScript code 
 Input JavaScript code:
 '''js
 axios({
-url: 'https://api.example.com/graphql',
+url: 'https://api.hello.com/graphql',
 method: 'POST',
 headers: {
 'Content-Type': 'application/json',
@@ -83,6 +83,8 @@ query: '
 }
 })
 EXPECTED OUTPUT:
+api endpoint URL: https://api.hello.com/graphql
+HTTP method: POST
 mutation {
 createPost(input: {
   title: "Hello World",
@@ -135,15 +137,15 @@ func FindPatterns(filename string) ([]string, error) {
 		for i, line := range lineList {
 			if regex.MatchString(line) {
 				var start, end int
-				if i < 10 {
+				if i < 5 {
 					start = 0
 				} else {
-					start = i - 10
+					start = i - 5
 				}
-				if i > len(lineList)-11 {
+				if i > len(lineList)-5 {
 					end = len(lineList)
 				} else {
-					end = i + 11
+					end = i + 5
 				}
 				aboveAndBelow := lineList[start:end]
 				compiledList := strings.Join(aboveAndBelow, "\n")
