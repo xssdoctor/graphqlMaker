@@ -26,14 +26,7 @@ func Cli()(error){
 		if err != nil {
 			return err
 		}
-	}
-	if Flags.Folder != "" {
-		resultArray, err = parse.FindPatternsFromFolder(Flags.Folder)
-		if err != nil {
-			return err
-		}
-	}
-	message := strings.Join(resultArray, "\n")
+		message := strings.Join(resultArray, "\n")
 	system  := `
 	# IDENTITY AND PURPOSE
 
@@ -101,5 +94,13 @@ mutation {
 		return err
 	}
 	fmt.Println(response)
+	return nil
+	}
+	if Flags.Folder != "" {
+		_, err = parse.FindPatternsFromFolder(Flags.Folder)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
