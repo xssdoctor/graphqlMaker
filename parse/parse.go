@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 
 	"github.com/joho/godotenv"
 	"github.com/xssdoctor/graphqlMaker/models"
@@ -127,96 +126,68 @@ func FindPatterns(filename string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	var wg sync.WaitGroup
-	mu := sync.Mutex{}
-	resultsChan := make(chan string, len(lineList))
 	for _, pattern := range patterns {
-		wg.Add(1)
-		go func(pattern string) {
-			defer wg.Done()
-			regex, err := regexp.Compile(pattern)
-			if err != nil {
-				fmt.Printf("Error compiling regex: %v\n", err)
-				return
-			}
-			for i, line := range lineList {
-				if regex.MatchString(line) {
-					var start, end int
-					if i < 10 {
-						start = 0
-					} else {
-						start = i - 10
-					}
-					if i > len(lineList)-11 {
-						end = len(lineList)
-					} else {
-						end = i + 11
-					}
-					aboveAndBelow := lineList[start:end]
-					compiledList := strings.Join(aboveAndBelow, "\n")
-					mu.Lock()
-					resultsChan <- compiledList
-					mu.Unlock()
+		regex, err := regexp.Compile(pattern)
+		if err != nil {
+			fmt.Printf("Error compiling regex: %v\n", err)
+			continue
+		}
+		for i, line := range lineList {
+			if regex.MatchString(line) {
+				var start, end int
+				if i < 10 {
+					start = 0
+				} else {
+					start = i - 10
 				}
+				if i > len(lineList)-11 {
+					end = len(lineList)
+				} else {
+					end = i + 11
+				}
+				aboveAndBelow := lineList[start:end]
+				compiledList := strings.Join(aboveAndBelow, "\n")
+				result = append(result, compiledList)
 			}
-		}(pattern)
-	}
-	wg.Wait()
-	close(resultsChan)
-	for chanresult := range resultsChan {
-		result = append(result, chanresult)
+		}
 	}
 	return result, nil
 }
 
-func FindPatternsFromFolder(folderName string) ([]string, error) {
-	var resultArray []string
-	var wg sync.WaitGroup
-	resultsChan := make(chan []string, 100)
 
-	err := filepath.WalkDir(folderName, func(path string, d fs.DirEntry, err error) error {
+func FindPatternsFromFolder(folderName string) ([]string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	envFile := filepath.Join(cwd, ".env")
+	godotenv.Load(envFile)
+	var resultArray []string
+
+	err = filepath.WalkDir(folderName, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		if !d.IsDir() && strings.HasSuffix(d.Name(), ".js") {
-			wg.Add(1)
-			go func(path string) {
-				defer wg.Done()
-				patternResults, err := FindPatterns(path)
+			patternResults, err := FindPatterns(path)
+			if err != nil {
+				fmt.Printf("Error finding patterns in file: %v\n", err)
+				return nil
+			}
+			if len(patternResults) > 0 {
+				message := strings.Join(patternResults, "\n")
+				oai := models.NewOpenAi(os.Getenv("OPENAI_API_KEY"), system, message)
+				response, err := oai.SendMessage()
 				if err != nil {
-					fmt.Printf("Error finding patterns in file: %v\n", err)
-					return
+					return err
 				}
-				resultsChan <- patternResults
-			}(path)
+				fmt.Println(response)
+			}
 		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
-	}
-
-	go func() {
-		wg.Wait()
-		close(resultsChan)
-	}()
-
-	for chanresult := range resultsChan {
-		if len(chanresult) > 0 {
-			message := strings.Join(chanresult, "\n")
-			cwd, err := os.Getwd()
-			if err != nil {
-				return nil, err
-			}
-			envFile := filepath.Join(cwd, ".env")
-			godotenv.Load(envFile)
-			oai := models.NewOpenAi(os.Getenv("OPENAI_API_KEY"), system, message)
-			response, err := oai.SendMessage()
-			if err != nil {
-				return nil, err
-			}
-			fmt.Println(response)
-		}
 	}
 
 	return resultArray, nil
