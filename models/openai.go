@@ -37,7 +37,7 @@ func (oai *OpenAI) SendMessage() (string, error) {
 	resp, err := client.CreateChatCompletion(
 		ctx,
 		openai.ChatCompletionRequest{
-			Model: "gpt-4o",
+			Model: "gpt-4o-2024-05-13",
 			Messages: messages,
 		},
 	)
