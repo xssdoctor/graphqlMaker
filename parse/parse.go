@@ -111,16 +111,11 @@ func FindPatterns(filename string) ([]string, error) {
 
 func FindPatternsFromFolder(folderName string) ([]string, error) {
 	var resultArray []string
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	folderPath := filepath.Join(cwd, folderName)
 	var wg sync.WaitGroup
 	mu := sync.Mutex{}
 	resultsChan := make(chan []string, 100)
 
-	err = filepath.WalkDir(folderPath, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(folderName, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
